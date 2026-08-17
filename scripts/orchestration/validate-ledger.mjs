@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ALLOWED_STATUSES = new Set([
@@ -11,6 +11,7 @@ const ALLOWED_STATUSES = new Set([
   'blocked',
   'blocked_by_human'
 ]);
+const TASK_ID_PATTERN = /^T[1-9]\d*$/;
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -21,7 +22,7 @@ function isNonEmptyString(value) {
 }
 
 function normalizeWorktree(value) {
-  return value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
+  return win32.normalize(win32.resolve(value.trim())).toLowerCase();
 }
 
 function validateStringArray(value, path, errors) {
@@ -79,7 +80,13 @@ export function validateLedger(ledger) {
 
   if (!isRecord(ledger)) return ['El ledger debe ser un objeto JSON.'];
 
-  for (const field of ['project', 'base', 'integrationBranch', 'worktreesRoot']) {
+  for (const field of [
+    'project',
+    'base',
+    'integrationBranch',
+    'integrationWorktree',
+    'worktreesRoot'
+  ]) {
     if (!isNonEmptyString(ledger[field])) {
       errors.push(`${field} debe ser un texto no vacío.`);
     }
@@ -96,8 +103,15 @@ export function validateLedger(ledger) {
 
   const taskIds = new Set(Object.keys(ledger.tasks));
   const worktrees = new Map();
+  const integrationWorktree = isNonEmptyString(ledger.integrationWorktree)
+    ? normalizeWorktree(ledger.integrationWorktree)
+    : null;
 
   for (const [taskId, task] of Object.entries(ledger.tasks)) {
+    if (!TASK_ID_PATTERN.test(taskId)) {
+      errors.push(`ID de tarea inválido: ${taskId}. Debe usar el formato T seguido de un entero positivo canónico.`);
+    }
+
     if (!isRecord(task)) {
       errors.push(`tasks.${taskId} debe ser un objeto.`);
       continue;
@@ -111,6 +125,18 @@ export function validateLedger(ledger) {
 
     if (!ALLOWED_STATUSES.has(task.status)) {
       errors.push(`tasks.${taskId}.status no es válido: ${String(task.status)}.`);
+    }
+
+    if (!Number.isInteger(task.attempts) || task.attempts < 0) {
+      errors.push(`tasks.${taskId}.attempts debe ser un entero no negativo.`);
+    }
+
+    if (typeof task.evidence !== 'string') {
+      errors.push(`tasks.${taskId}.evidence debe ser un string.`);
+    }
+
+    if (task.note !== undefined && typeof task.note !== 'string') {
+      errors.push(`tasks.${taskId}.note debe ser un string si está presente.`);
     }
 
     const hasDependencies = validateStringArray(
@@ -151,8 +177,11 @@ export function validateLedger(ledger) {
 
     if (isNonEmptyString(task.worktree)) {
       const normalized = normalizeWorktree(task.worktree);
-      const previousTaskId = worktrees.get(normalized);
-      if (previousTaskId) {
+      if (normalized === integrationWorktree) {
+        errors.push(`tasks.${taskId}.worktree no puede reutilizar integrationWorktree.`);
+      }
+      if (worktrees.has(normalized)) {
+        const previousTaskId = worktrees.get(normalized);
         errors.push(
           `worktree duplicado entre ${previousTaskId} y ${taskId}: ${task.worktree}.`
         );

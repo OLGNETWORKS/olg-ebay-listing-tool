@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
 import {
   renderDashboard,
-  renderTaskCard
+  renderTaskCard,
+  writeDashboard
 } from '../../scripts/orchestration/render-dashboard.mjs';
 
 function makeLedger() {
@@ -86,4 +93,26 @@ test('el CLI genera _dashboard.md y una tarjeta por tarea', () => {
   assert.match(readFileSync(join(outputDirectory, '_dashboard.md'), 'utf8'), /Proyecto de prueba/);
   assert.match(readFileSync(join(outputDirectory, 'T1.md'), 'utf8'), /🟡 IN_PROGRESS/);
   assert.match(readFileSync(join(outputDirectory, 'T2.md'), 'utf8'), /🟠 BLOCKED_BY_HUMAN/);
+});
+
+test('writeDashboard rechaza un ID inseguro antes de crear archivos', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'olg-dashboard-escape-'));
+  const outputDirectory = join(directory, 'tablero');
+  const escapedCard = join(directory, 'escape.md');
+  const ledger = makeLedger();
+  ledger.tasks['../escape'] = ledger.tasks.T2;
+  delete ledger.tasks.T2;
+  ledger.criticalPath = ['T1'];
+  ledger.tasks.T1.unlocks = [];
+
+  try {
+    await assert.rejects(
+      writeDashboard(ledger, outputDirectory),
+      /ID de tarea/
+    );
+    assert.equal(existsSync(outputDirectory), false);
+    assert.equal(existsSync(escapedCard), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

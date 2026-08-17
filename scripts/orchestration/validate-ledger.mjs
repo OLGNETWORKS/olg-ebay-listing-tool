@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile } from 'node:fs/promises';
-import { resolve, win32 } from 'node:path';
+import { posix, resolve, win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ALLOWED_STATUSES = new Set([
@@ -23,6 +23,30 @@ function isNonEmptyString(value) {
 
 function normalizeWorktree(value) {
   return win32.normalize(win32.resolve(value.trim())).toLowerCase();
+}
+
+function isStrictlyInsideRoot(candidate, root) {
+  const relative = win32.relative(root, candidate);
+  return relative.length > 0
+    && relative !== '..'
+    && !relative.startsWith(`..${win32.sep}`)
+    && !win32.isAbsolute(relative);
+}
+
+function normalizeOwnershipPattern(value) {
+  return posix
+    .normalize(value.trim().replaceAll('\\', '/'))
+    .replace(/\/+$/, '')
+    .toLowerCase();
+}
+
+function normalizeBranch(value) {
+  return value
+    .trim()
+    .replaceAll('\\', '/')
+    .replace(/\/{2,}/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase();
 }
 
 function validateStringArray(value, path, errors) {
@@ -103,9 +127,25 @@ export function validateLedger(ledger) {
 
   const taskIds = new Set(Object.keys(ledger.tasks));
   const worktrees = new Map();
+  const ownershipPatterns = new Map();
+  const branches = new Map();
+  const integrationBranch = isNonEmptyString(ledger.integrationBranch)
+    ? normalizeBranch(ledger.integrationBranch)
+    : null;
   const integrationWorktree = isNonEmptyString(ledger.integrationWorktree)
     ? normalizeWorktree(ledger.integrationWorktree)
     : null;
+  const worktreesRoot = isNonEmptyString(ledger.worktreesRoot)
+    ? normalizeWorktree(ledger.worktreesRoot)
+    : null;
+
+  if (
+    integrationWorktree
+    && worktreesRoot
+    && !isStrictlyInsideRoot(integrationWorktree, worktreesRoot)
+  ) {
+    errors.push('integrationWorktree debe estar estrictamente dentro de worktreesRoot.');
+  }
 
   for (const [taskId, task] of Object.entries(ledger.tasks)) {
     if (!TASK_ID_PATTERN.test(taskId)) {
@@ -139,6 +179,20 @@ export function validateLedger(ledger) {
       errors.push(`tasks.${taskId}.note debe ser un string si está presente.`);
     }
 
+    if (isNonEmptyString(task.branch)) {
+      const normalized = normalizeBranch(task.branch);
+      if (normalized === integrationBranch) {
+        errors.push(`tasks.${taskId}.branch no puede reutilizar integrationBranch.`);
+      }
+      if (branches.has(normalized)) {
+        errors.push(
+          `branch duplicada entre ${branches.get(normalized)} y ${taskId}: ${task.branch}.`
+        );
+      } else {
+        branches.set(normalized, taskId);
+      }
+    }
+
     const hasDependencies = validateStringArray(
       task.dependsOn,
       `tasks.${taskId}.dependsOn`,
@@ -159,6 +213,20 @@ export function validateLedger(ledger) {
       errors.push(`tasks.${taskId}.ownership no puede estar vacío.`);
     }
 
+    if (hasOwnership) {
+      for (const pattern of task.ownership.filter(isNonEmptyString)) {
+        const normalized = normalizeOwnershipPattern(pattern);
+        const previousTaskId = ownershipPatterns.get(normalized);
+        if (previousTaskId && previousTaskId !== taskId) {
+          errors.push(
+            `ownership duplicado entre ${previousTaskId} y ${taskId}: ${pattern}.`
+          );
+        } else {
+          ownershipPatterns.set(normalized, taskId);
+        }
+      }
+    }
+
     if (hasDependencies) {
       for (const dependencyId of task.dependsOn) {
         if (!taskIds.has(dependencyId)) {
@@ -177,6 +245,9 @@ export function validateLedger(ledger) {
 
     if (isNonEmptyString(task.worktree)) {
       const normalized = normalizeWorktree(task.worktree);
+      if (worktreesRoot && !isStrictlyInsideRoot(normalized, worktreesRoot)) {
+        errors.push(`tasks.${taskId}.worktree debe estar estrictamente dentro de worktreesRoot.`);
+      }
       if (normalized === integrationWorktree) {
         errors.push(`tasks.${taskId}.worktree no puede reutilizar integrationWorktree.`);
       }
@@ -199,6 +270,56 @@ export function validateLedger(ledger) {
         errors.push(`criticalPath referencia el ID desconocido ${taskId}.`);
       }
     });
+
+    for (let index = 0; index < ledger.criticalPath.length - 1; index += 1) {
+      const currentTaskId = ledger.criticalPath[index];
+      const nextTaskId = ledger.criticalPath[index + 1];
+      const currentTask = ledger.tasks[currentTaskId];
+      const nextTask = ledger.tasks[nextTaskId];
+      if (!isRecord(currentTask) || !isRecord(nextTask)) continue;
+
+      const isForwardEdge = Array.isArray(currentTask.unlocks)
+        && currentTask.unlocks.includes(nextTaskId)
+        && Array.isArray(nextTask.dependsOn)
+        && nextTask.dependsOn.includes(currentTaskId);
+      if (!isForwardEdge) {
+        errors.push(
+          `criticalPath no sigue una arista real en orden: ${currentTaskId} -> ${nextTaskId}.`
+        );
+      }
+    }
+  }
+
+  for (const [taskId, task] of Object.entries(ledger.tasks)) {
+    if (!isRecord(task)) continue;
+
+    if (Array.isArray(task.dependsOn)) {
+      for (const dependencyId of task.dependsOn) {
+        const dependency = ledger.tasks[dependencyId];
+        if (
+          isRecord(dependency)
+          && (!Array.isArray(dependency.unlocks) || !dependency.unlocks.includes(taskId))
+        ) {
+          errors.push(
+            `Falta reciprocidad: tasks.${taskId}.dependsOn incluye ${dependencyId}, pero tasks.${dependencyId}.unlocks no incluye ${taskId}.`
+          );
+        }
+      }
+    }
+
+    if (Array.isArray(task.unlocks)) {
+      for (const unlockedId of task.unlocks) {
+        const unlocked = ledger.tasks[unlockedId];
+        if (
+          isRecord(unlocked)
+          && (!Array.isArray(unlocked.dependsOn) || !unlocked.dependsOn.includes(taskId))
+        ) {
+          errors.push(
+            `Falta reciprocidad: tasks.${taskId}.unlocks incluye ${unlockedId}, pero tasks.${unlockedId}.dependsOn no incluye ${taskId}.`
+          );
+        }
+      }
+    }
   }
 
   const cycle = findDependencyCycle(ledger.tasks);

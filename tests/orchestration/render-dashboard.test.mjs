@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -112,6 +113,27 @@ test('writeDashboard rechaza un ID inseguro antes de crear archivos', async () =
     );
     assert.equal(existsSync(outputDirectory), false);
     assert.equal(existsSync(escapedCard), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('el rerender elimina sólo tarjetas canónicas obsoletas', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'olg-dashboard-stale-'));
+  const outputDirectory = join(directory, 'tablero');
+  const staleCard = join(outputDirectory, 'T99.md');
+  const manualFile = join(outputDirectory, 'manual.md');
+  mkdirSync(outputDirectory);
+  writeFileSync(staleCard, 'obsoleta', 'utf8');
+  writeFileSync(manualFile, 'contenido manual', 'utf8');
+
+  try {
+    await writeDashboard(makeLedger(), outputDirectory);
+
+    assert.equal(existsSync(staleCard), false);
+    assert.equal(readFileSync(manualFile, 'utf8'), 'contenido manual');
+    assert.equal(existsSync(join(outputDirectory, 'T1.md')), true);
+    assert.equal(existsSync(join(outputDirectory, 'T2.md')), true);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

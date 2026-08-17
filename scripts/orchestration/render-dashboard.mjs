@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -13,6 +13,7 @@ const STATUS_LABELS = {
   blocked: '🔴 BLOCKED',
   blocked_by_human: '🟠 BLOCKED_BY_HUMAN'
 };
+const GENERATED_CARD_PATTERN = /^T[1-9]\d*\.md$/;
 
 function statusLabel(status) {
   return STATUS_LABELS[status] ?? `⚫ ${String(status).toUpperCase()}`;
@@ -103,6 +104,19 @@ export async function writeDashboard(ledger, outputDirectory) {
         'utf8'
       )
     )
+  );
+
+  const currentCards = new Set(
+    Object.keys(ledger.tasks).map((taskId) => `${taskId}.md`)
+  );
+  const staleCards = (await readdir(outputDirectory, { withFileTypes: true }))
+    .filter((entry) =>
+      entry.isFile()
+      && GENERATED_CARD_PATTERN.test(entry.name)
+      && !currentCards.has(entry.name)
+    );
+  await Promise.all(
+    staleCards.map((entry) => unlink(resolve(outputDirectory, entry.name)))
   );
 }
 

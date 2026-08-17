@@ -78,6 +78,45 @@ test('rechaza ciclos en el grafo de dependencias', () => {
   assert.ok(validateLedger(ledger).some((error) => error.includes('ciclo')));
 });
 
+test('rechaza dependsOn sin unlocks recíproco', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T1.unlocks = [];
+  ledger.criticalPath = ['T1'];
+
+  assert.ok(validateLedger(ledger).some((error) =>
+    error.includes('reciprocidad') && error.includes('T2.dependsOn')
+  ));
+});
+
+test('rechaza unlocks sin dependsOn recíproco', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T2.dependsOn = [];
+  ledger.criticalPath = ['T1'];
+
+  assert.ok(validateLedger(ledger).some((error) =>
+    error.includes('reciprocidad') && error.includes('T1.unlocks')
+  ));
+});
+
+test('rechaza pares de criticalPath que no sean aristas reales', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T1.unlocks = [];
+  ledger.tasks.T2.dependsOn = [];
+
+  assert.ok(validateLedger(ledger).some((error) =>
+    error.includes('criticalPath') && error.includes('arista')
+  ));
+});
+
+test('rechaza criticalPath que recorre una arista en orden inverso', () => {
+  const ledger = makeLedger();
+  ledger.criticalPath = ['T2', 'T1'];
+
+  assert.ok(validateLedger(ledger).some((error) =>
+    error.includes('criticalPath') && error.includes('arista')
+  ));
+});
+
 test('rechaza ownership vacío o con patrones vacíos', () => {
   const ledger = makeLedger();
   ledger.tasks.T1.ownership = [];
@@ -87,6 +126,21 @@ test('rechaza ownership vacío o con patrones vacíos', () => {
 
   assert.ok(errors.some((error) => error.includes('T1.ownership')));
   assert.ok(errors.some((error) => error.includes('T2.ownership')));
+});
+
+test('rechaza patrones de ownership idénticos después de normalizarlos', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T2.ownership = ['  .\\ORCHESTRATION\\temporal\\..\\**\\  '];
+
+  assert.ok(validateLedger(ledger).some((error) => error.includes('ownership duplicado')));
+});
+
+test('no intenta resolver intersecciones entre globs de ownership distintos', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T1.ownership = ['src/**'];
+  ledger.tasks.T2.ownership = ['src/lib/**'];
+
+  assert.deepEqual(validateLedger(ledger), []);
 });
 
 test('rechaza worktrees duplicados aunque cambien slash, mayúsculas o slash final', () => {
@@ -108,6 +162,54 @@ test('rechaza que una tarea reutilice el worktree de integración', () => {
   ledger.tasks.T2.worktree = 'c:\\WORKTREES\\integration\\.';
 
   assert.ok(validateLedger(ledger).some((error) => error.includes('integrationWorktree')));
+});
+
+test('exige que integrationWorktree esté estrictamente dentro de worktreesRoot', async (t) => {
+  for (const [name, invalidPath] of [
+    ['igual a raíz', 'c:\\WORKTREES\\.'],
+    ['escape con punto-punto', 'C:/worktrees/../outside/integration']
+  ]) {
+    await t.test(name, () => {
+      const ledger = makeLedger();
+      ledger.integrationWorktree = invalidPath;
+
+      const errors = validateLedger(ledger);
+      assert.ok(errors.some((error) =>
+        error.includes('integrationWorktree') && error.includes('worktreesRoot')
+      ));
+    });
+  }
+});
+
+test('exige que cada task.worktree esté estrictamente dentro de worktreesRoot', async (t) => {
+  for (const [name, invalidPath] of [
+    ['igual a raíz', 'c:\\WORKTREES\\.'],
+    ['escape con punto-punto', 'C:/worktrees/../outside/T2']
+  ]) {
+    await t.test(name, () => {
+      const ledger = makeLedger();
+      ledger.tasks.T2.worktree = invalidPath;
+
+      const errors = validateLedger(ledger);
+      assert.ok(errors.some((error) =>
+        error.includes('tasks.T2.worktree') && error.includes('worktreesRoot')
+      ));
+    });
+  }
+});
+
+test('rechaza branches duplicadas sin distinguir case o separador', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T2.branch = 'TASK\\T1-FOUNDATION';
+
+  assert.ok(validateLedger(ledger).some((error) => error.includes('branch duplicada')));
+});
+
+test('rechaza que una tarea reutilice integrationBranch', () => {
+  const ledger = makeLedger();
+  ledger.tasks.T2.branch = 'INTEGRATION\\TEST';
+
+  assert.ok(validateLedger(ledger).some((error) => error.includes('integrationBranch')));
 });
 
 test('rechaza IDs que no sean T seguido de un entero positivo canónico', async (t) => {

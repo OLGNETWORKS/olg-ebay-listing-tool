@@ -51,25 +51,30 @@ ListingGateway
 
 ## Oleadas de trabajo
 
-### Oleada 0 — Fundación
+### Oleada 0 — Coordinación
 
-- **T1 Coordinación y contratos:** reglas, ledger, briefs, tablero y contratos de dominio iniciales.
+- **T1 Coordinación:** reglas, ledger, briefs, tablero y guardas para el trabajo multi-IA.
 
-### Oleada 1 — Núcleo paralelo
+### Oleada 1 — Base técnica secuencial
 
-- **T2 Compilador:** esquema de bloques, validador y compilador HTML/CSS estático.
+- **T2 Base y compilador:** app Next.js/TypeScript, contratos compartidos, esquema de bloques, validador y primer compilador HTML/CSS estático.
+
+T2 es secuencial porque será el único dueño inicial de `package.json`, el lockfile y los contratos que consumirán las demás tareas.
+
+### Oleada 2 — Núcleo paralelo
+
 - **T3 Perfiles:** modelo y persistencia local de perfiles internos, sin eBay.
 - **T4 Interfaz:** shell del editor, biblioteca de bloques y preview con datos fixture.
 - **T5 Gateway mock:** validación y simulación de trabajos de publicación sin red.
 
-T2–T5 arrancan después de T1 y tienen ownership separado.
+T3–T5 arrancan después de T2 y tienen ownership separado.
 
-### Oleada 2 — Ensamble
+### Oleada 3 — Ensamble
 
 - **T6 Flujo vertical interno:** crear perfil → diseñar → preview → validar → publicar en mock → ver resultado.
 - **T7 Calidad y seguridad:** pruebas end-to-end, accesibilidad, sanitización y prueba de que producción queda bloqueada.
 
-### Oleada 3 — eBay Sandbox
+### Oleada 4 — eBay Sandbox
 
 - **T8 OAuth y gateway Sandbox:** sólo cuando eBay apruebe las credenciales. Primero validación; cualquier publicación de prueba requiere confirmación humana explícita.
 

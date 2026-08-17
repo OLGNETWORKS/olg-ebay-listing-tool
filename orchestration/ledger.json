@@ -10,19 +10,19 @@
   "tasks": {
     "T1": {
       "name": "Fundación, coordinación y contratos",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "task/T1-foundation",
       "dependsOn": [],
       "unlocks": ["T2", "T3", "T4", "T5"],
-      "attempts": 0,
+      "attempts": 3,
       "ownership": [
         "orchestration/**",
         "scripts/orchestration/**",
         "tests/orchestration/**"
       ],
       "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T1/repo",
-      "evidence": "",
-      "note": "Cierra el sistema de coordinación antes de paralelizar código de producto."
+      "evidence": "Integrado en integration/mvp-foundation. Revisión de especificación: PASS. Revisión de calidad: PASS. Verificación post-merge: ledger válido, 46/46 pruebas y renderer determinista.",
+      "note": "Fundación cerrada: ledger validable, briefs y tablero determinista listos para abrir las tareas de producto."
     },
     "T2": {
       "name": "Esquema de bloques y compilador estático",

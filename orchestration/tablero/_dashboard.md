@@ -10,7 +10,7 @@
 
 | ID | Tarea | Estado | Depende de | Rama |
 | --- | --- | --- | --- | --- |
-| [T1](./T1.md) | Fundación, coordinación y contratos | 🟡 IN_PROGRESS | — | task/T1-foundation |
+| [T1](./T1.md) | Fundación, coordinación y contratos | 🟢 COMPLETED | — | task/T1-foundation |
 | [T2](./T2.md) | Esquema de bloques y compilador estático | ⚪ PENDING | T1 | task/T2-compiler |
 | [T3](./T3.md) | Perfiles internos de producto | ⚪ PENDING | T1 | task/T3-profiles |
 | [T4](./T4.md) | Shell del editor y preview | ⚪ PENDING | T1 | task/T4-editor-ui |

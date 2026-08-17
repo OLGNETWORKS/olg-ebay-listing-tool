@@ -1,0 +1,117 @@
+{
+  "project": "OLG Listing Tool — MVP interno",
+  "plan": "docs/plans/2026-08-17-mvp-herramienta-interna-ebay.md",
+  "base": "main",
+  "integrationBranch": "integration/mvp-foundation",
+  "integrationWorktree": "C:/Users/T14/olg-listing-tool-flota/integration",
+  "worktreesRoot": "C:/Users/T14/olg-listing-tool-flota",
+  "worktreesNote": "Fuera de OneDrive para evitar bloqueos y conflictos de sincronización.",
+  "criticalPath": ["T1", "T2", "T6", "T7", "T8"],
+  "tasks": {
+    "T1": {
+      "name": "Fundación, coordinación y contratos",
+      "status": "in_progress",
+      "branch": "task/T1-foundation",
+      "dependsOn": [],
+      "unlocks": ["T2", "T3", "T4", "T5"],
+      "attempts": 0,
+      "ownership": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "README.md",
+        "docs/plans/**",
+        "orchestration/**",
+        "scripts/orchestration/**",
+        "tests/orchestration/**"
+      ],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T1/repo",
+      "evidence": "",
+      "note": "Cierra el sistema de coordinación antes de paralelizar código de producto."
+    },
+    "T2": {
+      "name": "Esquema de bloques y compilador estático",
+      "status": "pending",
+      "branch": "task/T2-compiler",
+      "dependsOn": ["T1"],
+      "unlocks": ["T6"],
+      "attempts": 0,
+      "ownership": ["src/lib/compiler/**", "tests/compiler/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T2/repo",
+      "evidence": "",
+      "note": "Sin JavaScript; salida determinista y compatible con eBay."
+    },
+    "T3": {
+      "name": "Perfiles internos de producto",
+      "status": "pending",
+      "branch": "task/T3-profiles",
+      "dependsOn": ["T1"],
+      "unlocks": ["T6"],
+      "attempts": 0,
+      "ownership": ["prisma/**", "src/lib/profiles/**", "tests/profiles/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T3/repo",
+      "evidence": "",
+      "note": "Único dueño de Prisma en la oleada."
+    },
+    "T4": {
+      "name": "Shell del editor y preview",
+      "status": "pending",
+      "branch": "task/T4-editor-ui",
+      "dependsOn": ["T1"],
+      "unlocks": ["T6"],
+      "attempts": 0,
+      "ownership": ["src/app/**", "src/components/editor/**", "tests/editor/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T4/repo",
+      "evidence": "",
+      "note": "Consume contratos y fixtures; no implementa el compilador."
+    },
+    "T5": {
+      "name": "Gateway mock y trabajos de publicación",
+      "status": "pending",
+      "branch": "task/T5-mock-gateway",
+      "dependsOn": ["T1"],
+      "unlocks": ["T6"],
+      "attempts": 0,
+      "ownership": ["src/lib/ebay/**", "src/lib/jobs/**", "tests/ebay/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T5/repo",
+      "evidence": "",
+      "note": "Sin tráfico a eBay. Producción bloqueada por contrato."
+    },
+    "T6": {
+      "name": "Flujo vertical interno",
+      "status": "pending",
+      "branch": "task/T6-vertical-slice",
+      "dependsOn": ["T2", "T3", "T4", "T5"],
+      "unlocks": ["T7"],
+      "attempts": 0,
+      "ownership": ["src/features/listing-workflow/**", "tests/workflow/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T6/repo",
+      "evidence": "",
+      "note": "Ensamble sólo después de verificar los cuatro contratos anteriores."
+    },
+    "T7": {
+      "name": "E2E, accesibilidad y guardas de seguridad",
+      "status": "pending",
+      "branch": "task/T7-quality-gates",
+      "dependsOn": ["T6"],
+      "unlocks": ["T8"],
+      "attempts": 0,
+      "ownership": ["e2e/**", "tests/security/**", ".github/workflows/**"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T7/repo",
+      "evidence": "",
+      "note": "Debe demostrar que ninguna ruta escribe en producción."
+    },
+    "T8": {
+      "name": "OAuth y gateway eBay Sandbox",
+      "status": "blocked_by_human",
+      "branch": "task/T8-ebay-sandbox",
+      "dependsOn": ["T7"],
+      "unlocks": [],
+      "attempts": 0,
+      "ownership": ["src/lib/ebay/sandbox/**", "tests/ebay-sandbox/**", ".env.example"],
+      "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T8/repo",
+      "evidence": "",
+      "note": "Espera credenciales aprobadas y autorización explícita antes de publicar incluso en Sandbox."
+    }
+  }
+}
+

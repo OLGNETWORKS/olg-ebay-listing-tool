@@ -13,7 +13,7 @@
 | [T1](./T1.md) | Fundación, coordinación y contratos | 🟢 COMPLETED | — | task/T1-foundation |
 | [T2](./T2.md) | Base de aplicación, contratos y compilador estático | 🟢 COMPLETED | T1 | task/T2-compiler |
 | [T3](./T3.md) | Perfiles internos de producto | 🟢 COMPLETED | T2 | task/T3-profiles |
-| [T4](./T4.md) | Shell del editor y preview | ⚪ PENDING | T2 | task/T4-editor-ui |
+| [T4](./T4.md) | Shell del editor y preview | 🟢 COMPLETED | T2 | task/T4-editor-ui |
 | [T5](./T5.md) | Gateway mock y trabajos de publicación | ⚪ PENDING | T2 | task/T5-mock-gateway |
 | [T6](./T6.md) | Flujo vertical interno | ⚪ PENDING | T2, T3, T4, T5 | task/T6-vertical-slice |
 | [T7](./T7.md) | E2E, accesibilidad y guardas de seguridad | ⚪ PENDING | T6 | task/T7-quality-gates |

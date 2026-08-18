@@ -26,14 +26,14 @@
     },
     "T2": {
       "name": "Base de aplicación, contratos y compilador estático",
-      "status": "pending",
+      "status": "completed",
       "branch": "task/T2-compiler",
       "dependsOn": ["T1"],
       "unlocks": ["T3", "T4", "T5", "T6"],
-      "attempts": 0,
+      "attempts": 1,
       "ownership": ["package.json", "package-lock.json", "tsconfig.json", "next.config.ts", "postcss.config.mjs", "src/lib/contracts/**", "src/lib/compiler/**", "tests/compiler/**"],
       "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T2/repo",
-      "evidence": "",
+      "evidence": "Integrado mediante PR #1 en ea74d03 y corrección de checkout limpio mediante PR #2 en 61533f9. T2: 10/10 pruebas del compilador, 46/46 pruebas de coordinación, TypeScript estricto, smoke build de Next.js App Router, ledger válido y npm audit sin vulnerabilidades.",
       "note": "Primera tarea de producto y única dueña de la base técnica compartida. Sin JavaScript en el HTML generado; salida determinista y compatible con eBay."
     },
     "T3": {

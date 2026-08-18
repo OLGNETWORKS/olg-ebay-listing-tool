@@ -38,15 +38,15 @@
     },
     "T3": {
       "name": "Perfiles internos de producto",
-      "status": "pending",
+      "status": "completed",
       "branch": "task/T3-profiles",
       "dependsOn": ["T2"],
       "unlocks": ["T6"],
-      "attempts": 0,
+      "attempts": 1,
       "ownership": ["prisma/**", "src/lib/profiles/**", "tests/profiles/**"],
       "worktree": "C:/Users/T14/olg-listing-tool-flota/w-T3/repo",
-      "evidence": "",
-      "note": "Único dueño de Prisma en la oleada."
+      "evidence": "Integrado mediante PR #3 en 4b43da8 (head 653d1af). Revisión senior: PASS. Verificación post-merge: Prisma validate/generate PASS, 13/13 pruebas de perfiles, 10/10 pruebas del compilador, 46/46 pruebas de coordinación, TypeScript estricto, framework smoke build PASS y npm audit sin vulnerabilidades.",
+      "note": "Persistencia PostgreSQL/Prisma integrada con revisiones inmutables, control optimista de concurrencia y validación runtime de JSON persistido."
     },
     "T4": {
       "name": "Shell del editor y preview",

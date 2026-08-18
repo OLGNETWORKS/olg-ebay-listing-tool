@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ListingProfileRecord {
+  profileId           String                  @id @map("profile_id")
+  sku                 String                  @unique
+  title               String
+  revision            Int
+  commercial          Json
+  logistics           Json
+  media               Json
+  descriptionDocument Json                    @map("description_document")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  versions            ListingProfileVersion[]
+
+  @@map("listing_profiles")
+}
+
+model ListingProfileVersion {
+  id        String               @id @default(cuid())
+  profileId String               @map("profile_id")
+  revision  Int
+  snapshot  Json
+  createdAt DateTime             @default(now()) @map("created_at")
+  profile   ListingProfileRecord @relation(fields: [profileId], references: [profileId], onDelete: Cascade)
+
+  @@unique([profileId, revision])
+  @@index([profileId, createdAt])
+  @@map("listing_profile_versions")
+}
